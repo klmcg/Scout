@@ -6,11 +6,7 @@ This is a temporary script file.
 """
 
 # Kennedy, I'm going to comment a lot of the code here initially. Typically I wouldn't have this much
-# description. As you get more confident, I'll do this less. 
-
-# this is makes sure that when casually doing division using the '/' operator, python returns
-# the actual result, instead of rounding to the nearest integer. 
-from __future__ import division
+# description. As you get more confident, I'll do it less. 
 
 # this imports the library called pandas, which has lots of useful functions for reading
 # and writing data to files. I've also set it up so that throughout the script, whenever
@@ -37,40 +33,44 @@ output_days = []
 output_hours = []
 output_energy = []
 
-# name the column headings that correspond to each year. This part is a little funny because of the
+# list the column headings that correspond to each year. This part is a little funny because of the
 # way the Excel file was set up. There were 4 separate columns called 'Year', so pandas kind of
-# renames them to keep track of which is which.
+# renames them to keep track of which is which. You can see the data and column headings if you
+# write 'df_wind' in the console (bottom left quadrant of your screen in Spyder)
+
 years = ['Year','Year.1','Year.2','Year.3']
 
-# similarly, I'm going to keep track of what other column names exist for categories we're interested in
+# similarly, I'm going to keep track of what pandas named other columns for categories we're interested in
 months = ['Month','Month.1','Month.2','Month.3']
 days = ['Day','Day.1','Day.2','Day.3']
 hours = ['(CST)','(CST).1','(CST).2','(CST).3']
 energy = ['Array (MWh)','Array (MWh).1','Array (MWh).2','Array (MWh).3']
 
-# length of the variable 'years' gives us 4
+# length of the variable 'years', gives us num_years = 4
 num_years = len(years)
 
 # 'for' loop to consider each year, one at a time
 # i takes the value of a member of the list years (defined above); first i = 'Year', then 'Year.1', etc.
+for i in years: # note the syntax; in python 'if' statements and 'for' loops are initiated with a colon
 
-for i in years: # note the syntax; in python if statements and for loops are initiated with a colon
-
-    # this keeps track of what # year we are on, by finding the location of 'i' within years
+    # this keeps track of what # year we are on, by finding the location of 'i' within the list years
     # when i = 'Year', y_index = 0; when i = 'Year.1', y_index = 1; etc.
     y_index = years.index(i)
 
     
-    # now want to "nest" another for loop. can think about this like big and little hands of a clock. 
+    # now we want to "nest" another for loop. can think about this like big and little hands of a clock. 
     # the inner loop is the minute hand, the outer loop is the hour hand. 
     
     # another python syntax rule: you need to indent the contents of an if statement/for loop
        
     # go through every hour in every year (i.e., iterate through the length of our dataframe table)   
-    # here the value of j iterates through the set (0,1,...,8783)
+    # here the value of j iterates through the set (0,1,...,8783). the 'range' function
+    # is useful for creating sets of numbers. you specify the first number, and the last, and 
+    # it creates a set of all numbers between them except for the last one.
     for j in range(0,len(df_wind)):
         
-        # identify the corresponding year, month, day, hour and wind energy value
+        # identify the corresponding year, month, day, hour and wind energy value 
+        # associated with each row
         
         # note the .loc convention; you have to use this when identifying the element of a dataframe
         # if we were just pulling out an element of a 2D array, we would not need the .loc
@@ -80,22 +80,26 @@ for i in years: # note the syntax; in python if statements and for loops are ini
         h = df_wind.loc[j,hours[y_index]]
         e = df_wind.loc[j,energy[y_index]]
 
-        # make sure there is real data there
+        # make sure there is real data there. if y < 0, it means that the year is <= 0
+        # so we know not to proceed
         
         if y > 0:
             
             # if there is real data there, add each new data point to its respective vector
+            # the .append function in the numpy (np) library allows you to add one data point
+            # at a time to a vector. you specify the vector first, then the point to be added
             output_years = np.append(output_years,y)
             output_months = np.append(output_months,m)
             output_days = np.append(output_days,d)
             output_hours = np.append(output_hours,h)
             output_energy = np.append(output_energy,e)
 
-# now we want to push those five vectors together to get one matrix
+# now we want to push those five vectors together to get one matrix. you can do this using the
+# .column_stack function in numpy
 D = np.column_stack((output_years,output_months,output_days,output_hours,output_energy))
 
-# let's add two more columns, all of zeros; these a just placeholders, we'll use them later
-
+# now let's add two more columns, all of zeros; these are just placeholders, we'll use them later
+# the .zeros function in numpy creates an array of zeros of a specified shape
 z = np.zeros((len(output_years),2))
 
 D2 = np.column_stack((D,z))
@@ -131,17 +135,23 @@ for i in range(0,len(df_new)):
     # what hour is it?
     h = df_new.loc[i,'Hour']
     
+    # if it's a peak hour
     if h > 6 and h < 23:
         
         # this assigns to the variable t, the peak value for month m (in row m-1 of df_targets)        
         t = df_targets.loc[m-1,'Peak']
     
+    # if it's an offpeak hour
     else:
         
         # this assigns to the variable t, the offpeak value for month m (in row m-1 of df_targets)        
         t = df_targets.loc[m-1,'Offpeak']
-            
+    
+    # assigns the identified target value to the 'Target' column
     df_new.loc[i,'Target'] = t
+    
+    # calculates the difference between actual generation and the target, and then stores
+    # that value in the 'Difference' column
     df_new.loc[i,'Difference'] = df_new.loc[i,'Energy'] - df_new.loc[i,'Target']
 
 # we can write the new dataframe to Excel to see what it looks like
